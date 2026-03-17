@@ -106,6 +106,8 @@ html,body{height:100%;overflow:hidden;visibility:visible;font-family:'Nunito','N
 .btn-mic.recording{background:var(--red);box-shadow:0 3px 0 #CC3333;animation:pulse-m 0.8s infinite;}
 @keyframes pulse-m{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
 .btn-chk{padding:10px 14px;background:var(--primary);color:white;border:none;border-radius:12px;font-weight:900;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;flex:1;}
+.btn-skip{padding:10px 14px;background:#F0F0F0;color:#888;border:2px solid #DDD;border-radius:12px;font-weight:900;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;}
+.btn-skip:active{background:#E0E0E0;}
 .btn-chk:disabled{opacity:0.4;cursor:not-allowed;}
 .sbadge{display:none;margin-top:8px;padding:6px 12px;border-radius:10px;font-weight:800;font-size:13px;}
 .sh{background:#EEF9EF;color:var(--grass-dark);border:2px solid var(--grass);}
@@ -538,7 +540,11 @@ function renderPractice(){
     inp.addEventListener('keydown',e=>{if(e.key==='Enter')checkPractice(i);});
     const mic=document.createElement('button');mic.className='btn-mic';mic.id=`pm-${i}`;mic.innerHTML='🎤';mic.onclick=()=>toggleRec(i);
     const chk=document.createElement('button');chk.className='btn-chk';chk.id=`pc-${i}`;chk.textContent='✅ 確認';chk.onclick=()=>checkPractice(i);
-    ctrl.appendChild(inp);ctrl.appendChild(mic);ctrl.appendChild(chk);
+    const skip=document.createElement('button');
+    skip.className='btn-skip';skip.textContent='⏭ 跳過';skip.onclick=()=>skipLine(i);
+    const btnRow=document.createElement('div');btnRow.className='pbuttons';
+    btnRow.appendChild(mic);btnRow.appendChild(chk);btnRow.appendChild(skip);
+    ctrl.appendChild(inp);ctrl.appendChild(btnRow);
     const badge=document.createElement('div');badge.className='sbadge';badge.id=`psb-${i}`;
     block.appendChild(lt);block.appendChild(boxRow);block.appendChild(ctrl);block.appendChild(badge);
     body.appendChild(block);
@@ -752,6 +758,29 @@ function checkPractice(i){
   }
 }
 
+function skipLine(i){
+  const state=practiceStates[i];
+  if(state.done)return;
+  state.done=true;
+  state.skipped=true;
+  const block=document.getElementById(`pb-${i}`);
+  block.classList.add('all-done');
+  block.style.borderColor='#CCC';
+  block.style.background='#F9F9F9';
+  const badge=document.getElementById(`psb-${i}`);
+  badge.style.display='block';
+  badge.className='sbadge';
+  badge.style.cssText='display:block;margin-top:8px;padding:6px 12px;border-radius:10px;font-weight:800;font-size:13px;background:#F5F5F5;color:#999;border:2px solid #DDD;';
+  badge.textContent='⏭ 已跳過';
+  const inp=document.getElementById(`pi-${i}`);
+  if(inp)inp.disabled=true;
+  const chk=document.getElementById(`pc-${i}`);
+  if(chk)chk.disabled=true;
+  const mic=document.getElementById(`pm-${i}`);
+  if(mic)mic.disabled=true;
+  checkAllDone();
+}
+
 function checkAllDone(){
   if(practiceStates.every(s=>s.done)){
     starCount++;localStorage.setItem('star_count',starCount);updateStarDisplay();
@@ -897,6 +926,7 @@ window.checkPractice=checkPractice;
 window.calNav=calNav;
 window.closeDetail=closeDetail;
 window.switchTab=switchTab;
+window.skipLine=skipLine;
 window.deleteEntry=deleteEntry;
 window.setLang=setLang;
 </script>

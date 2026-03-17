@@ -424,7 +424,7 @@ async function generateExpl(text){
 
 ${text}
 
-請用廣東話口語，為7至9歲嘅香港小朋友解釋呢段文字嘅意思。用自然嘅廣東話，簡單易明。每句用句號（。）結尾，每句之間要有停頓感，大概3至5句。只輸出解釋文字，唔好有其他內容。`;
+用廣東話口語解釋畀7至9歲小朋友聽，3至5句，每句以句號結尾。只需要解釋內容，唔需要任何標題或說明。`;
     if(deepseekKey){
       // Use DeepSeek for explanation — better at Chinese
       const res=await fetch('https://api.deepseek.com/v1/chat/completions',{
@@ -448,7 +448,8 @@ ${text}
       }
     }
     if(!expl)return;
-    currentExpl=expl;
+    // Strip any meta lines DeepSeek adds (instructions, headers etc)
+    currentExpl=expl.split('\n').map(l=>l.trim()).filter(l=>l.length>0).filter(l=>!/^(以下|如下|故事|解釋|說明|注|Note|[：:#*])/.test(l)).join('');
     document.getElementById('explText').textContent=currentExpl;
     document.getElementById('explCard').style.display='block';
     // Save explanation to entry for later revisit

@@ -170,6 +170,9 @@ html,body{height:100%;overflow:hidden;visibility:visible;font-family:'Nunito','N
         <div class="saved-b" id="geminiSaved">✅ Gemini Key 已儲存<button onclick="clearKey('gemini')">更改</button></div>
         <div class="frow" id="geminiRow"><input type="password" class="api-input" id="geminiInput" placeholder="AIza..."><button class="btn-save" onclick="saveKey('gemini')">儲存</button></div>
 
+        <span class="slabel">💬 DeepSeek Key（廣東話解釋 — platform.deepseek.com）</span>
+        <div class="saved-b" id="deepseekSaved">✅ DeepSeek Key 已儲存<button onclick="clearKey('deepseek')">更改</button></div>
+        <div class="frow" id="deepseekRow"><input type="password" class="api-input" id="deepseekInput" placeholder="sk-..."><button class="btn-save" onclick="saveKey('deepseek')">儲存</button></div>
         <span class="slabel">🔊 Google TTS Key（語音朗讀 — console.cloud.google.com）</span>
         <div class="saved-b" id="ttsSaved">✅ TTS Key 已儲存<button onclick="clearKey('tts')">更改</button></div>
         <div class="frow" id="ttsRow"><input type="password" class="api-input" id="ttsInput" placeholder="AIza..."><button class="btn-save" onclick="saveKey('tts')">儲存</button></div>
@@ -294,6 +297,7 @@ window.onerror = function(msg, src, line, col, err) {
 // ── STATE ──
 let geminiKey=localStorage.getItem('gemini_key')||'';
 let ttsKey=localStorage.getItem('tts_key')||'';
+let deepseekKey=localStorage.getItem('deepseek_key')||'';
 
 let ttsLang=localStorage.getItem('tts_lang')||'zh-HK';
 let starCount=parseInt(localStorage.getItem('star_count')||'0');
@@ -320,6 +324,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(geminiKey&&gr&&gs){gr.style.display='none';gs.style.display='flex';}
     const tr=document.getElementById('ttsRow'),ts=document.getElementById('ttsSaved');
     if(ttsKey&&tr&&ts){tr.style.display='none';ts.style.display='flex';}
+    const dsr=document.getElementById('deepseekRow'),dss=document.getElementById('deepseekSaved');
+    if(deepseekKey&&dsr&&dss){dsr.style.display='none';dss.style.display='flex';}
     updateLangBtns();
     renderCalendar();
     renderHistory();
@@ -341,10 +347,12 @@ function saveKey(t){
   const v=document.getElementById(t+'Input').value.trim();if(!v)return;
   if(t==='gemini'){geminiKey=v;localStorage.setItem('gemini_key',v);document.getElementById('geminiRow').style.display='none';document.getElementById('geminiSaved').style.display='flex';}
   else if(t==='tts'){ttsKey=v;localStorage.setItem('tts_key',v);document.getElementById('ttsRow').style.display='none';document.getElementById('ttsSaved').style.display='flex';}
+  else if(t==='deepseek'){deepseekKey=v;localStorage.setItem('deepseek_key',v);document.getElementById('deepseekRow').style.display='none';document.getElementById('deepseekSaved').style.display='flex';}
 }
 function clearKey(t){
   if(t==='gemini'){geminiKey='';localStorage.removeItem('gemini_key');document.getElementById('geminiInput').value='';document.getElementById('geminiRow').style.display='flex';document.getElementById('geminiSaved').style.display='none';}
   else if(t==='tts'){ttsKey='';localStorage.removeItem('tts_key');document.getElementById('ttsInput').value='';document.getElementById('ttsRow').style.display='flex';document.getElementById('ttsSaved').style.display='none';}
+  else if(t==='deepseek'){deepseekKey='';localStorage.removeItem('deepseek_key');document.getElementById('deepseekInput').value='';document.getElementById('deepseekRow').style.display='flex';document.getElementById('deepseekSaved').style.display='none';}
 }
 
 // ── LANG ──
@@ -409,25 +417,39 @@ async function extractText(){
 
 async function generateExpl(text){
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{parts:[{text:`以下是一段文字：
+    let expl='';
+    const prompt=`以下是一段文字：
 
 ${text}
 
-請用廣東話口語，為7至9歲嘅香港小朋友解釋呢段文字嘅意思。用自然嘅廣東話，簡單易明，大概3至5句。`}]}],
-        generationConfig:{maxOutputTokens:500}
-      })
-    });
-    if(!res.ok)return;
-    const data=await res.json();
-    const txt=data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if(!txt)return;
-    currentExpl=txt.trim();
+請用廣東話口語，為7至9歲嘅香港小朋友解釋呢段文字嘅意思。用自然嘅廣東話，簡單易明，大概3至5句。`;
+    if(deepseekKey){
+      // Use DeepSeek for explanation — better at Chinese
+      const res=await fetch('https://api.deepseek.com/v1/chat/completions',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${deepseekKey}`},
+        body:JSON.stringify({model:'deepseek-chat',max_tokens:500,messages:[{role:'user',content:prompt}]})
+      });
+      if(res.ok){
+        const data=await res.json();
+        expl=data.choices?.[0]?.message?.content?.trim()||'';
+      }
+    }
+    if(!expl){
+      // Fallback to Gemini if no DeepSeek key or DeepSeek failed
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:500}})
+      });
+      if(res.ok){
+        const data=await res.json();
+        expl=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||'';
+      }
+    }
+    if(!expl)return;
+    currentExpl=expl;
     document.getElementById('explText').textContent=currentExpl;
     document.getElementById('explCard').style.display='block';
-  }catch(e){}
+  }catch(e){console.log('Explanation error:',e);}
 }
 
 // ── PROCESS TEXT ──
@@ -569,7 +591,10 @@ async function speakText(text,onEnd){
   if(ttsKey){
     try{
       // Google Cloud TTS voices
-      const voiceName=ttsLang==='zh-HK'?'yue-HK-Standard-A':'cmn-CN-Wavenet-A';
+      // Best available Google TTS voices
+      // Cantonese: yue-HK-Standard-A (only Cantonese option)
+      // Mandarin: cmn-CN-Wavenet-D (female, natural, best for kids)
+      const voiceName=ttsLang==='zh-HK'?'yue-HK-Standard-A':'cmn-CN-Wavenet-D';
       const langCode=ttsLang==='zh-HK'?'yue-HK':'cmn-CN';
       const res=await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${ttsKey}`,{
         method:'POST',

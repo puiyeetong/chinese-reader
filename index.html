@@ -424,7 +424,7 @@ async function generateExpl(text){
 
 ${text}
 
-請用廣東話口語，為7至9歲嘅香港小朋友解釋呢段文字嘅意思。用自然嘅廣東話，簡單易明，大概3至5句。`;
+請用廣東話口語，為7至9歲嘅香港小朋友解釋呢段文字嘅意思。用自然嘅廣東話，簡單易明。每句用句號（。）結尾，每句之間要有停頓感，大概3至5句。只輸出解釋文字，唔好有其他內容。`;
     if(deepseekKey){
       // Use DeepSeek for explanation — better at Chinese
       const res=await fetch('https://api.deepseek.com/v1/chat/completions',{
@@ -713,7 +713,19 @@ function playExpl(){
   }
   icon.textContent='■';
   btn.dataset.playing='1';
-  speakText(currentExpl,()=>{icon.textContent='▶';btn.dataset.playing='0';});
+  // Split explanation into sentences and play with gaps
+  const sentences=currentExpl.split(/(?<=[。！？])/).map(s=>s.trim()).filter(s=>s.length>0);
+  if(sentences.length===0){speakText(currentExpl,()=>{icon.textContent='▶';btn.dataset.playing='0';});return;}
+  let idx=0;
+  const playNext=()=>{
+    if(idx>=sentences.length||btn.dataset.playing!=='1'){
+      icon.textContent='▶';btn.dataset.playing='0';return;
+    }
+    speakText(sentences[idx++],()=>{
+      setTimeout(playNext,400); // 400ms pause between sentences
+    });
+  };
+  playNext();
 }
 
 // ── RECORDING ──

@@ -446,13 +446,28 @@ function markComplete(){
 
 // ── SPLIT LINES ──
 function splitLines(text){
-  const SP=new Set(['，','。','！','？','；','、','…','：','!','?',',','.']);
+  const SP=new Set(['，','。','！','？','；','、','…','：','!','?',',','.','「','」','『','』','（','）','()','""','\'','"','"','—','-','《','》','【','】']);
   const lines=[];
   text.replace(/\r\n/g,'\n').split('\n').forEach(para=>{
     if(!para.trim())return;
     let cur='';
-    for(const ch of para){cur+=ch;if(SP.has(ch)){if(cur.trim())lines.push(cur.trim());cur='';}}
-    if(cur.trim())lines.push(cur.trim());
+    for(const ch of para){
+      // Skip all punctuation and symbols - only accumulate Chinese chars
+      const code=ch.codePointAt(0);
+      const isChinese=(code>=0x4E00&&code<=0x9FFF)||(code>=0x3400&&code<=0x4DBF)||(code>=0x20000&&code<=0x2A6DF);
+      const isSplitPunct=SP.has(ch);
+      if(isSplitPunct){
+        // End current segment
+        const stripped=stripDisplay(cur);
+        if(stripped.length>0)lines.push(stripped);
+        cur='';
+      } else if(isChinese){
+        cur+=ch;
+      }
+      // Ignore everything else (brackets, quotes, dashes, spaces etc)
+    }
+    const stripped=stripDisplay(cur);
+    if(stripped.length>0)lines.push(stripped);
   });
   return lines.filter(l=>l.length>0);
 }

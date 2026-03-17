@@ -451,6 +451,12 @@ ${text}
     currentExpl=expl;
     document.getElementById('explText').textContent=currentExpl;
     document.getElementById('explCard').style.display='block';
+    // Save explanation to entry for later revisit
+    if(currentEntryId){
+      const h=getHistory();
+      const idx=h.findIndex(e=>e.id===currentEntryId);
+      if(idx!==-1){h[idx].explanation=expl;saveHistory(h);}
+    }
   }catch(e){console.log('Explanation error:',e);}
 }
 
@@ -466,15 +472,29 @@ function processText(text){
   saveEntry(text);
 }
 
+let currentEntryId=null;
+
 function saveEntry(text){
   const h=getHistory();
-  h.unshift({id:Date.now(),date:new Date().toISOString(),text,lines:currentLines,imgB64:currentImgB64?currentImgB64.substring(0,4000):null,completed:false,lang:ttsLang});
+  const entry={id:Date.now(),date:new Date().toISOString(),text,lines:currentLines,imgB64:currentImgB64?currentImgB64.substring(0,4000):null,completed:false,lang:ttsLang,practiceStates:JSON.parse(JSON.stringify(practiceStates))};
+  h.unshift(entry);
   if(h.length>100)h.splice(100);
+  saveHistory(h);
+  currentEntryId=entry.id;
+}
+
+function updateEntryProgress(){
+  if(!currentEntryId)return;
+  const h=getHistory();
+  const idx=h.findIndex(e=>e.id===currentEntryId);
+  if(idx===-1)return;
+  h[idx].practiceStates=JSON.parse(JSON.stringify(practiceStates));
   saveHistory(h);
 }
 function markComplete(){
   const h=getHistory();
-  if(h.length>0){h[0].completed=true;saveHistory(h);}
+  const idx=currentEntryId?h.findIndex(e=>e.id===currentEntryId):0;
+  if(idx!==-1){h[idx].completed=true;saveHistory(h);}
 }
 
 // ── SPLIT LINES ──
@@ -751,6 +771,7 @@ function checkPractice(i){
       badge.textContent='🌟 全部完成！';
       checkAllDone();
     }
+    updateEntryProgress();
   }else if(sc>=50){
     badge.className='sbadge sm';badge.textContent=`😊 接近了！${sc}%，再試！`;inp.value='';inp.focus();
   }else{
@@ -778,6 +799,7 @@ function skipLine(i){
   if(chk)chk.disabled=true;
   const mic=document.getElementById(`pm-${i}`);
   if(mic)mic.disabled=true;
+  updateEntryProgress();
   checkAllDone();
 }
 
@@ -820,11 +842,12 @@ function renderHistory(){
     const preview=(entry.lines||[]).slice(0,2).map(l=>l.replace(/[，。！？；、…：,.!?;:]/g,'')).join(' ')||(entry.text||'').substring(0,50);
     const tick=entry.completed?' ✅':'';
     const delBtn=`<button onclick="event.stopPropagation();deleteEntry(${entry.id})" style="position:absolute;top:8px;right:8px;background:rgba(255,80,80,0.9);color:white;border:none;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;">🗑</button>`;
+    const contBtn=`<button onclick="event.stopPropagation();loadEntry(${JSON.stringify(entry).replace(/"/g,'&quot;')})" style="margin-top:6px;width:100%;padding:7px;background:var(--primary-light);color:var(--primary);border:2px solid var(--primary);border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;">▶ 繼續練習</button>`;
     card.style.position='relative';
     if(entry.imgB64){
-      card.innerHTML=`<img class="entry-thumb" src="data:image/jpeg;base64,${entry.imgB64}" onerror="this.style.display='none'"><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}</div>${delBtn}`;
+      card.innerHTML=`<img class="entry-thumb" src="data:image/jpeg;base64,${entry.imgB64}" onerror="this.style.display='none'"><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}${contBtn}</div>${delBtn}`;
     }else{
-      card.innerHTML=`<div class="entry-thumb-ph">📄</div><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}</div>${delBtn}`;
+      card.innerHTML=`<div class="entry-thumb-ph">📄</div><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}${contBtn}</div>${delBtn}`;
     }
     list.appendChild(card);
   });
@@ -836,6 +859,61 @@ function deleteEntry(id){
   saveHistory(h);
   renderHistory();
   renderCalendar();
+}
+
+function loadEntry(entry){
+  // Load entry onto main reading tab
+  switchTab('today');
+  currentLines=entry.lines||[];
+  currentEntryId=entry.id;
+  currentExpl='';
+  currentImgB64=null;
+  // Restore practice states if saved, else fresh
+  if(entry.practiceStates&&entry.practiceStates.length===currentLines.length){
+    practiceStates=JSON.parse(JSON.stringify(entry.practiceStates));
+  } else {
+    practiceStates=currentLines.map(()=>({attempts:[false,false,false,false,false],done:false}));
+  }
+  // Hide upload, show content
+  document.getElementById('uploadZone').style.display='none';
+  document.getElementById('imgWrap').style.display='none';
+  document.getElementById('extractBtn').style.display='none';
+  document.getElementById('hintText').style.display='none';
+  document.getElementById('manualS').style.display='none';
+  // Render reading and practice
+  renderReading();
+  renderPractice();
+  document.getElementById('readingCard').style.display='block';
+  document.getElementById('practiceCard').style.display='block';
+  // Restore explanation if saved
+  if(entry.explanation){
+    currentExpl=entry.explanation;
+    document.getElementById('explText').textContent=currentExpl;
+    document.getElementById('explCard').style.display='block';
+  } else if(entry.text) {
+    document.getElementById('explCard').style.display='none';
+    generateExpl(entry.text);
+  }
+  // Scroll to top
+  document.getElementById('pane-today').scrollTop=0;
+  document.getElementById('readingCard').scrollIntoView({behavior:'smooth',block:'start'});
+  // Add a "back to upload" button at top
+  let backBtn=document.getElementById('backToUpload');
+  if(!backBtn){
+    backBtn=document.createElement('button');
+    backBtn.id='backToUpload';
+    backBtn.style.cssText='width:100%;padding:12px;background:white;border:2px solid var(--border);border-radius:14px;font-weight:800;font-size:14px;cursor:pointer;margin-bottom:14px;color:var(--primary);font-family:Nunito,sans-serif;';
+    backBtn.textContent='+ 上傳新圖片';
+    backBtn.onclick=()=>{
+      document.getElementById('uploadZone').style.display='block';
+      document.getElementById('extractBtn').style.display='flex';
+      document.getElementById('hintText').style.display='block';
+      backBtn.remove();
+    };
+    const pane=document.getElementById('pane-today');
+    const settingsCard=document.querySelector('.scard');
+    pane.insertBefore(backBtn,settingsCard.nextSibling.nextSibling.nextSibling);
+  }
 }
 
 function openDetail(entry){
@@ -926,6 +1004,7 @@ window.checkPractice=checkPractice;
 window.calNav=calNav;
 window.closeDetail=closeDetail;
 window.switchTab=switchTab;
+window.loadEntry=loadEntry;
 window.skipLine=skipLine;
 window.deleteEntry=deleteEntry;
 window.setLang=setLang;

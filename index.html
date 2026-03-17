@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
@@ -170,9 +171,9 @@ html,body{height:100%;overflow:hidden;visibility:visible;font-family:'Nunito','N
         <div class="frow" id="geminiRow"><input type="password" class="api-input" id="geminiInput" placeholder="AIza..."><button class="btn-save" onclick="saveKey('gemini')">儲存</button></div>
 
         <span class="slabel">🗣 朗讀語言（粵語）</span>
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--primary-light);border-radius:10px;border:2px solid var(--primary);">
-          <span style="font-size:16px;">🗣</span>
-          <span style="font-size:13px;font-weight:800;color:var(--primary);">粵語 Cantonese</span>
+        <div class="lang-tog">
+          <button class="lang-btn" id="langHK" onclick="setLang('zh-HK')">🗣 粵語</button>
+          <button class="lang-btn" id="langCN" onclick="setLang('zh-CN')">🗣 普通話</button>
         </div>
       </div>
 
@@ -290,7 +291,7 @@ window.onerror = function(msg, src, line, col, err) {
 // ── STATE ──
 let geminiKey=localStorage.getItem('gemini_key')||'';
 
-let ttsLang='zh-HK'; // Cantonese only
+let ttsLang=localStorage.getItem('tts_lang')||'zh-HK';
 let starCount=parseInt(localStorage.getItem('star_count')||'0');
 let currentLines=[];
 let practiceStates=[];
@@ -338,7 +339,18 @@ function clearKey(t){
 }
 
 // ── LANG ──
-function updateLangBtns(){ /* Cantonese only */ }
+function setLang(l){
+  ttsLang=l;
+  localStorage.setItem('tts_lang',l);
+  updateLangBtns();
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+}
+function updateLangBtns(){
+  const hk=document.getElementById('langHK');
+  const cn=document.getElementById('langCN');
+  if(hk)hk.classList.toggle('active',ttsLang==='zh-HK');
+  if(cn)cn.classList.toggle('active',ttsLang==='zh-CN');
+}
 
 // ── FILE ──
 function handleFile(e){
@@ -491,17 +503,49 @@ function renderPractice(){
 function stripP(t){return t.replace(/[，。！？；、…：,.!?;:]/g,'').trim();}
 function getBestVoice(){
   const voices=window.speechSynthesis.getVoices();
-  const p=ttsLang==='zh-HK'?['zh-HK','zh_HK','zh-TW','zh_TW','zh']:['zh-CN','zh_CN','zh'];
-  for(const l of p){const v=voices.find(v=>v.lang.startsWith(l));if(v)return v;}
-  return null;
+  if(!voices.length) return null;
+  // First: exact Cantonese match by name (iPhone Siri voices)
+  const cantoneseNames=['Sin-Ji','Sinji','sin-ji','Good News','Fiona'];
+  for(const name of cantoneseNames){
+    const v=voices.find(v=>v.name.includes(name));
+    if(v){console.log('Voice (name match):',v.name,v.lang);return v;}
+  }
+  // Second: exact zh-HK lang match
+  const v1=voices.find(v=>v.lang==='zh-HK'||v.lang==='zh_HK');
+  if(v1){console.log('Voice (zh-HK):',v1.name,v1.lang);return v1;}
+  // Third: zh-TW as fallback (Traditional Chinese, closer to Cantonese)
+  const v2=voices.find(v=>v.lang==='zh-TW'||v.lang==='zh_TW');
+  if(v2){console.log('Voice (zh-TW):',v2.name,v2.lang);return v2;}
+  // If Mandarin selected, prefer zh-CN
+  if(ttsLang==='zh-CN'){
+    const vcn=voices.find(v=>v.lang==='zh-CN'||v.lang==='zh_CN');
+    if(vcn){console.log('Voice (zh-CN):',vcn.name,vcn.lang);return vcn;}
+  }
+  // Last resort: any zh voice
+  const v3=voices.find(v=>v.lang.startsWith('zh'));
+  if(v3){console.log('Voice (zh fallback):',v3.name,v3.lang);}
+  return v3||null;
 }
 function speakText(text,onEnd){
   if(activeUtt)window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(stripP(text));
-  u.lang=ttsLang;u.rate=0.85;const v=getBestVoice();if(v)u.voice=v;
-  u.onend=()=>{activeUtt=null;if(onEnd)onEnd();};
-  u.onerror=()=>{activeUtt=null;if(onEnd)onEnd();};
-  activeUtt=u;window.speechSynthesis.speak(u);
+  const doSpeak=()=>{
+    const u=new SpeechSynthesisUtterance(stripP(text));
+    u.lang='zh-HK';
+    u.rate=0.85;
+    const v=getBestVoice();
+    if(v){u.voice=v;console.log('Speaking with:',v.name,v.lang);}
+    u.onend=()=>{activeUtt=null;if(onEnd)onEnd();};
+    u.onerror=()=>{activeUtt=null;if(onEnd)onEnd();};
+    activeUtt=u;
+    window.speechSynthesis.speak(u);
+  };
+  // If voices not loaded yet, wait for them
+  const voices=window.speechSynthesis.getVoices();
+  if(voices.length===0){
+    window.speechSynthesis.onvoiceschanged=()=>{ window.speechSynthesis.onvoiceschanged=null; doSpeak(); };
+  } else {
+    doSpeak();
+  }
 }
 function playLine(i){
   resetPractice();
@@ -751,6 +795,7 @@ window.checkPractice=checkPractice;
 window.calNav=calNav;
 window.closeDetail=closeDetail;
 window.switchTab=switchTab;
+window.setLang=setLang;
 </script>
 </body>
 </html>

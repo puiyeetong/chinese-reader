@@ -223,7 +223,7 @@ html,body{height:100%;overflow:hidden;visibility:visible;font-family:'Nunito','N
       <div class="card" id="explCard" style="display:none;background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border-color:var(--sun);">
         <div class="card-hd" style="border-color:#FFE08A;background:transparent;">
           <div class="card-title" style="color:#7A4F00;">💡 意思解釋</div>
-          <button class="btn-play-expl" onclick="playExpl()"><span id="explIcon">▶</span> 播放</button>
+          <button class="btn-play-expl" id="btnPlayExpl" onclick="playExpl()"><span id="explIcon">▶</span> 播放</button>
         </div>
         <div class="card-body"><div class="expl-text" id="explText"></div></div>
       </div>
@@ -677,6 +677,7 @@ function playExpl(){
   if(!currentExpl)return;
   const icon=document.getElementById('explIcon');
   const btn=document.getElementById('btnPlayExpl');
+  if(!btn){speakText(currentExpl,()=>{if(icon)icon.textContent='▶';});return;}
   if(btn.dataset.playing==='1'){
     window.speechSynthesis.cancel();
     if(activeAudio){activeAudio.pause();activeAudio=null;}

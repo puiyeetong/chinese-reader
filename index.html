@@ -550,7 +550,21 @@ function renderPractice(){
     const block=document.createElement('div');block.className='pline';block.id=`pb-${i}`;
     const lt=document.createElement('div');lt.className='pline-text';lt.textContent=stripDisplay(line);
     const boxRow=document.createElement('div');boxRow.className='boxes-row';
-    for(let a=0;a<5;a++){const box=document.createElement('div');box.className='abox'+(a===0?' active':'');box.id=`abox-${i}-${a}`;box.textContent='';boxRow.appendChild(box);}
+    for(let a=0;a<5;a++){
+      const box=document.createElement('div');
+      const st=practiceStates[i];
+      let cls='abox';
+      if(st.attempts[a]){cls+=' passed';}
+      else if(!st.done){
+        // active = next unticked box
+        const nextIdx=st.attempts.findIndex(x=>!x);
+        if(a===nextIdx)cls+=' active';
+      }
+      box.className=cls;
+      box.id=`abox-${i}-${a}`;
+      box.textContent=st.attempts[a]?'✓':'';
+      boxRow.appendChild(box);
+    }
     const ctrl=document.createElement('div');ctrl.className='pcontrols';
     const inp=document.createElement('input');inp.type='text';inp.className='pinput';inp.id=`pi-${i}`;inp.placeholder='🎤 錄音 或 用聽寫讀出這句…';
     inp.setAttribute('autocomplete','off');inp.setAttribute('autocorrect','off');inp.setAttribute('autocapitalize','off');inp.setAttribute('spellcheck','false');
@@ -569,6 +583,26 @@ function renderPractice(){
     const badge=document.createElement('div');badge.className='sbadge';badge.id=`psb-${i}`;
     block.appendChild(lt);block.appendChild(boxRow);block.appendChild(ctrl);block.appendChild(badge);
     body.appendChild(block);
+    // Restore done/skipped visual state
+    const st=practiceStates[i];
+    if(st.done){
+      block.classList.add('all-done');
+      const inp2=document.getElementById(`pi-${i}`);
+      const chk2=document.getElementById(`pc-${i}`);
+      const mic2=document.getElementById(`pm-${i}`);
+      if(inp2)inp2.disabled=true;
+      if(chk2)chk2.disabled=true;
+      if(mic2)mic2.disabled=true;
+      badge.style.display='block';
+      if(st.skipped){
+        block.style.borderColor='#CCC';block.style.background='#F9F9F9';
+        badge.style.cssText='display:block;margin-top:8px;padding:6px 12px;border-radius:10px;font-weight:800;font-size:13px;background:#F5F5F5;color:#999;border:2px solid #DDD;';
+        badge.textContent='⏭ 已跳過';
+      } else {
+        badge.className='sbadge sh';
+        badge.textContent='🌟 全部完成！';
+      }
+    }
   });
 }
 

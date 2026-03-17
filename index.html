@@ -502,8 +502,13 @@ function renderPractice(){
 // ── TTS ──
 function stripP(t){return t.replace(/[，。！？；、…：,.!?;:]/g,'').trim();}
 function stripDisplay(t){
-  // Keep only Chinese characters, letters and numbers - remove ALL punctuation and symbols
-  return t.replace(/[^一-鿿㐀-䶿＀-￯a-zA-Z0-9\s]/g,'').trim();
+  // Keep ONLY Chinese characters (CJK Unified Ideographs) — nothing else
+  return [...t].filter(ch=>{
+    const code=ch.codePointAt(0);
+    return (code>=0x4E00&&code<=0x9FFF)||   // CJK Unified Ideographs
+           (code>=0x3400&&code<=0x4DBF)||   // CJK Extension A
+           (code>=0x20000&&code<=0x2A6DF);  // CJK Extension B
+  }).join('');
 }
 function getBestVoice(){
   const voices=window.speechSynthesis.getVoices();

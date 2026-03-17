@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>小小讀書人</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+HK:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+HK:wght@400;700;900&display=swap" rel="stylesheet"></noscript>
+<style>
+:root {
+  --bg:#F7F3FF;--primary:#7C5CBF;--primary-light:#EDE5FF;
+  --secondary:#4ECDC4;--secondary-light:#E0F7F5;
+  --sun:#FFD93D;--sun-dark:#F4A100;
+  --red:#FF6B6B;--red-light:#FFE5E5;
+  --grass:#6BCB77;--grass-dark:#3DA84A;
+  --card:#FFFFFF;--text:#2D2D2D;--muted:#999;--border:#EDE8F5;
+  --tab-h:68px;
+  --shadow:0 4px 20px rgba(124,92,191,0.10);
+  --shadow-lg:0 8px 40px rgba(124,92,191,0.16);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;visibility:visible;font-family:'Nunito','Noto Sans HK','PingFang HK','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);}
+#app{display:flex;flex-direction:column;height:100%;}
+.tab-content{flex:1;overflow:hidden;position:relative;}
+.tab-pane{position:absolute;inset:0;overflow-y:auto;padding:16px 16px calc(var(--tab-h)+20px);display:none;}
+.tab-pane.active{display:block;}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);background:white;border-top:2px solid var(--border);display:flex;z-index:100;box-shadow:0 -4px 20px rgba(124,92,191,0.08);}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:var(--muted);transition:color 0.2s;padding-bottom:4px;}
+.tab-btn .ti{font-size:24px;transition:transform 0.2s;}
+.tab-btn.active{color:var(--primary);}
+.tab-btn.active .ti{transform:scale(1.15);}
+.page-header{display:flex;align-items:center;justify-content:space-between;padding:4px 0 16px;}
+.page-title{font-size:22px;font-weight:900;color:var(--primary);}
+.page-title span{color:var(--secondary);}
+.card{background:var(--card);border-radius:20px;border:2px solid var(--border);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;}
+.card-hd{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--border);}
+.card-title{font-weight:900;font-size:15px;}
+.card-body{padding:16px;}
+/* Settings */
+.scard{background:var(--card);border-radius:20px;border:2px solid var(--border);box-shadow:var(--shadow);padding:18px;margin-bottom:14px;}
+.slabel{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;display:block;}
+.frow{display:flex;gap:8px;margin-bottom:12px;}
+.api-input{flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:12px;font-size:13px;font-family:monospace;outline:none;background:#FAF8FF;}
+.api-input:focus{border-color:var(--primary);}
+.btn-save{padding:10px 14px;background:var(--primary);color:white;border:none;border-radius:12px;font-weight:900;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;}
+.saved-b{display:none;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--grass-dark);background:#EEF9EF;padding:8px 12px;border-radius:10px;border:2px solid var(--grass);margin-bottom:12px;}
+.saved-b button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;margin-left:4px;}
+/* Lang toggle */
+.lang-tog{display:flex;gap:6px;margin-top:4px;}
+.lang-btn{padding:6px 14px;border-radius:10px;border:2px solid var(--border);background:white;font-size:12px;font-weight:900;cursor:pointer;font-family:'Nunito',sans-serif;color:var(--muted);transition:all 0.15s;}
+.lang-btn.active{background:var(--primary);border-color:var(--primary);color:white;}
+/* Upload */
+.upload-zone{border:3px dashed var(--secondary);border-radius:20px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:14px;position:relative;background:var(--secondary-light);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--primary);background:var(--primary-light);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.uicon{font-size:48px;display:block;margin-bottom:8px;}
+.utitle{font-size:17px;font-weight:900;color:var(--secondary);}
+.usub{font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;}
+.img-wrap{display:none;margin-bottom:14px;border-radius:18px;overflow:hidden;border:3px solid var(--border);box-shadow:var(--shadow);position:relative;}
+.img-wrap img{width:100%;display:block;max-height:220px;object-fit:cover;}
+.img-actions{position:absolute;top:8px;right:8px;}
+.img-act-btn{background:rgba(0,0,0,0.5);color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;}
+/* Buttons */
+.btn-extract{width:100%;padding:16px;background:linear-gradient(135deg,var(--primary),#A07FE0);color:white;border:none;border-radius:18px;font-size:17px;font-weight:900;cursor:pointer;box-shadow:0 5px 0 #5B3FA0;transition:all 0.15s;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Nunito',sans-serif;}
+.btn-extract:active{transform:translateY(4px);box-shadow:0 1px 0 #5B3FA0;}
+.btn-extract:disabled{opacity:0.6;cursor:not-allowed;}
+.spinner{width:20px;height:20px;border:3px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.hint{text-align:center;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:12px;}
+.error-msg{display:none;background:#FFF0F0;border:2px solid var(--red);color:var(--red);border-radius:14px;padding:10px 14px;font-weight:700;font-size:13px;margin-bottom:12px;}
+/* Reading lines */
+.line-block{background:#FAF8FF;border-radius:14px;padding:12px 14px;margin-bottom:10px;border:2px solid transparent;transition:border-color 0.3s;}
+.line-block.line-playing{border-color:var(--primary);background:var(--primary-light);}
+.line-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.line-text{font-family:'Noto Sans HK',sans-serif;font-size:22px;font-weight:700;line-height:1.6;flex:1;letter-spacing:2px;}
+.word-span{display:inline-block;transition:color 0.15s,transform 0.15s;}
+.word-span.reading{color:var(--red);transform:scale(1.18);font-weight:900;}
+.word-span.done{color:var(--grass-dark);}
+.btn-play-line{flex-shrink:0;width:36px;height:36px;background:var(--secondary);color:white;border:none;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 #2aada4;transition:all 0.15s;}
+.btn-play-line:active{transform:translateY(2px);box-shadow:none;}
+.btn-play-line.playing{background:var(--red);box-shadow:0 3px 0 #CC3333;}
+.btn-play-all{background:white;color:var(--primary);border:2px solid var(--primary);border-radius:10px;padding:6px 12px;font-weight:900;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;}
+.btn-play-all.playing{background:var(--red);border-color:var(--red);color:white;}
+/* Explanation */
+.expl-text{font-family:'Noto Sans HK',sans-serif;font-size:16px;line-height:1.9;color:#5A3800;}
+.btn-play-expl{display:flex;align-items:center;gap:6px;background:var(--sun-dark);color:white;border:none;border-radius:10px;padding:7px 14px;font-weight:900;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;}
+/* Practice */
+.pline{background:#FAF8FF;border-radius:14px;padding:14px;margin-bottom:12px;border:2px solid var(--border);}
+.pline.all-done{border-color:var(--grass);background:#EEF9EF;}
+.pline-text{font-family:'Noto Sans HK',sans-serif;font-size:19px;font-weight:700;letter-spacing:2px;margin-bottom:10px;}
+.boxes-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.abox{width:38px;height:38px;border-radius:10px;border:2px solid var(--border);background:white;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s;}
+.abox.active{border-color:var(--primary);background:var(--primary-light);}
+.abox.passed{background:var(--grass);border-color:var(--grass-dark);color:white;font-size:20px;}
+.pcontrols{display:flex;gap:8px;}
+.pinput{flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:12px;font-size:17px;font-family:'Noto Sans HK',sans-serif;outline:none;background:white;transition:border-color 0.2s;}
+.pinput:focus{border-color:var(--primary);}
+.pinput.rec-on{border-color:var(--red);background:#FFF5F5;animation:blink-b 0.8s infinite;}
+@keyframes blink-b{0%,100%{border-color:var(--red);}50%{border-color:#FFB3B3;}}
+.btn-mic{width:40px;height:40px;background:var(--sun);color:#7A4F00;border:none;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 var(--sun-dark);transition:all 0.15s;flex-shrink:0;}
+.btn-mic.recording{background:var(--red);box-shadow:0 3px 0 #CC3333;animation:pulse-m 0.8s infinite;}
+@keyframes pulse-m{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+.btn-chk{padding:10px 14px;background:var(--primary);color:white;border:none;border-radius:12px;font-weight:900;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;flex-shrink:0;}
+.btn-chk:disabled{opacity:0.4;cursor:not-allowed;}
+.sbadge{display:none;margin-top:8px;padding:6px 12px;border-radius:10px;font-weight:800;font-size:13px;}
+.sh{background:#EEF9EF;color:var(--grass-dark);border:2px solid var(--grass);}
+.sm{background:#FFF8E1;color:#B8860B;border:2px solid var(--sun);}
+.sl{background:#FFF0F0;color:var(--red);border:2px solid var(--red);}
+/* Manual */
+.manual-s{display:none;background:white;border:2px solid var(--sun);border-radius:18px;padding:16px;margin-bottom:14px;}
+.manual-note{font-weight:800;font-size:13px;color:#7A4F00;margin-bottom:8px;}
+.manual-ta{width:100%;min-height:100px;padding:10px;border:2px solid var(--border);border-radius:12px;font-size:16px;font-family:'Noto Sans HK',sans-serif;resize:vertical;outline:none;line-height:1.8;}
+.btn-manual{margin-top:10px;width:100%;padding:13px;background:linear-gradient(135deg,var(--sun),var(--sun-dark));color:#7A4F00;border:none;border-radius:14px;font-size:15px;font-weight:900;cursor:pointer;font-family:'Nunito',sans-serif;}
+/* History */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-icon{font-size:60px;display:block;margin-bottom:12px;}
+.entry-card{background:var(--card);border-radius:18px;border:2px solid var(--border);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;display:flex;cursor:pointer;transition:transform 0.15s;}
+.entry-card:active{transform:scale(0.98);}
+.entry-thumb{width:80px;height:80px;object-fit:cover;flex-shrink:0;}
+.entry-thumb-ph{width:80px;height:80px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;}
+.entry-info{padding:12px;flex:1;min-width:0;}
+.entry-date{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:4px;}
+.entry-preview{font-family:'Noto Sans HK',sans-serif;font-size:14px;font-weight:700;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+/* Calendar */
+.cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.cal-title{font-size:20px;font-weight:900;color:var(--primary);}
+.cal-nav-btn{width:36px;height:36px;border:2px solid var(--border);background:white;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:900;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-label{text-align:center;font-size:11px;font-weight:900;color:var(--muted);padding:4px 0;}
+.cal-day{aspect-ratio:1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:800;background:white;border:2px solid transparent;position:relative;}
+.cal-day.today{border-color:var(--primary);color:var(--primary);}
+.cal-day.other{color:#CCC;background:#FAFAFA;}
+.cal-day.has-star{cursor:pointer;background:var(--primary-light);border-color:var(--primary);}
+.cal-day.has-star:active{transform:scale(0.95);}
+.cal-star{font-size:15px;line-height:1;}
+.cal-num{font-size:11px;font-weight:900;line-height:1;}
+/* Star pill */
+.star-pill{background:var(--sun);border:2px solid var(--sun-dark);border-radius:50px;padding:5px 12px;font-weight:900;font-size:14px;color:#7A4F00;box-shadow:0 2px 0 var(--sun-dark);}
+/* Confetti */
+.confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:999;overflow:hidden;}
+.confetto{position:absolute;width:10px;height:10px;border-radius:2px;animation:fall linear forwards;}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
+/* Detail overlay */
+.detail-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;padding:16px 16px calc(var(--tab-h)+16px);}
+.detail-overlay.open{display:block;}
+.detail-back{display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;font-weight:900;color:var(--primary);font-size:16px;}
+@media(max-width:400px){.line-text{font-size:19px;}.pline-text{font-size:16px;}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="tab-content">
+
+    <!-- TAB 1: TODAY -->
+    <div class="tab-pane active" id="pane-today">
+      <div class="page-header">
+        <div class="page-title">小小<span>讀書人</span> 📖</div>
+        <div class="star-pill">⭐ <span id="starCount">0</span></div>
+      </div>
+
+      <!-- API Settings -->
+      <div class="scard">
+        <div style="font-weight:900;font-size:15px;color:var(--primary);margin-bottom:14px;">🔑 API 設定</div>
+        <span class="slabel">📷 Gemini Key（圖片讀取 — aistudio.google.com）</span>
+        <div class="saved-b" id="geminiSaved">✅ Gemini Key 已儲存<button onclick="clearKey('gemini')">更改</button></div>
+        <div class="frow" id="geminiRow"><input type="password" class="api-input" id="geminiInput" placeholder="AIza..."><button class="btn-save" onclick="saveKey('gemini')">儲存</button></div>
+        <span class="slabel">💬 DeepSeek Key（廣東話解釋 — platform.deepseek.com）</span>
+        <div class="saved-b" id="deepseekSaved">✅ DeepSeek Key 已儲存<button onclick="clearKey('deepseek')">更改</button></div>
+        <div class="frow" id="deepseekRow"><input type="password" class="api-input" id="deepseekInput" placeholder="sk-..."><button class="btn-save" onclick="saveKey('deepseek')">儲存</button></div>
+        <span class="slabel">🗣 朗讀語言</span>
+        <div class="lang-tog">
+          <button class="lang-btn" id="langHK" onclick="window.setLang&&window.setLang('zh-HK')">粵語</button>
+          <button class="lang-btn" id="langCN" onclick="window.setLang&&window.setLang('zh-CN')">普通話</button>
+        </div>
+      </div>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <!-- Upload -->
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" accept="image/*" id="fileInput" onchange="handleFile(event)">
+        <span class="uicon">📷</span>
+        <div class="utitle">拍照或上傳圖片</div>
+        <div class="usub">支援 JPG、PNG — 書本、工作紙都得！</div>
+      </div>
+
+      <div class="img-wrap" id="imgWrap">
+        <img id="previewImg" src="" alt="">
+        <div class="img-actions"><button class="img-act-btn" onclick="changeImage()">🔄 換圖</button></div>
+      </div>
+
+      <button class="btn-extract" id="extractBtn" onclick="extractText()" disabled>
+        <div class="spinner" id="spinner"></div>
+        <span id="extractBtnText">✨ 讀取文字</span>
+      </button>
+      <p class="hint" id="hintText">請先上傳圖片</p>
+
+      <div class="manual-s" id="manualS">
+        <div class="manual-note" id="manualNote">📋 請手動貼上文字：</div>
+        <textarea class="manual-ta" id="manualInput" placeholder="貼上中文文字，每行用換行分隔…"></textarea>
+        <button class="btn-manual" onclick="submitManual()">✅ 使用這段文字</button>
+      </div>
+
+      <!-- Section 2: Reading -->
+      <div class="card" id="readingCard" style="display:none;">
+        <div class="card-hd">
+          <div class="card-title">📝 朗讀文章</div>
+          <button class="btn-play-all" id="btnPlayAll" onclick="playAll()">▶ 全文朗讀</button>
+        </div>
+        <div class="card-body" id="readingBody"></div>
+      </div>
+
+      <!-- Section 3: Explanation -->
+      <div class="card" id="explCard" style="display:none;background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border-color:var(--sun);">
+        <div class="card-hd" style="border-color:#FFE08A;background:transparent;">
+          <div class="card-title" style="color:#7A4F00;">💡 意思解釋</div>
+          <button class="btn-play-expl" onclick="playExpl()"><span id="explIcon">▶</span> 播放</button>
+        </div>
+        <div class="card-body"><div class="expl-text" id="explText"></div></div>
+      </div>
+
+      <!-- Section 4: Practice -->
+      <div class="card" id="practiceCard" style="display:none;">
+        <div class="card-hd">
+          <div class="card-title">🎤 跟讀練習</div>
+          <div style="font-size:12px;font-weight:700;color:var(--muted);">每句讀 5 次 ✅</div>
+        </div>
+        <div class="card-body" id="practiceBody"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: HISTORY -->
+    <div class="tab-pane" id="pane-history">
+      <div class="page-header">
+        <div class="page-title">📚 我的<span>記錄</span></div>
+      </div>
+      <div id="historyList"></div>
+    </div>
+
+    <!-- TAB 3: CALENDAR -->
+    <div class="tab-pane" id="pane-calendar">
+      <div class="page-header">
+        <div class="page-title">📅 學習<span>日曆</span></div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="cal-hd">
+            <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+            <div class="cal-title" id="calTitle"></div>
+            <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+          </div>
+          <div class="cal-grid" id="calLabels"></div>
+          <div class="cal-grid" style="margin-top:4px;" id="calGrid"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-today" onclick="switchTab('today')"><span class="ti">📖</span>今日讀書</button>
+    <button class="tab-btn" id="tab-history" onclick="switchTab('history')"><span class="ti">📚</span>我的記錄</button>
+    <button class="tab-btn" id="tab-calendar" onclick="switchTab('calendar')"><span class="ti">📅</span>學習日曆</button>
+  </div>
+</div>
+
+<!-- Entry detail -->
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-back" onclick="closeDetail()">← 返回</div>
+  <div id="detailContent"></div>
+</div>
+
+<!-- Confetti -->
+<div class="confetti-wrap" id="confettiWrap"></div>
+
+<script>
+// Global error handler - shows error instead of blank screen
+window.onerror = function(msg, src, line, col, err) {
+  document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;max-width:500px;margin:auto;">'
+    + '<div style="font-size:48px;margin-bottom:16px;">⚠️</div>'
+    + '<h2 style="margin-bottom:12px;">載入出現問題</h2>'
+    + '<p style="color:#666;margin-bottom:8px;">錯誤: ' + msg + '</p>'
+    + '<p style="color:#666;margin-bottom:16px;">行數: ' + line + '</p>'
+    + '<button onclick="location.reload()" style="padding:12px 24px;background:#7C5CBF;color:white;border:none;border-radius:12px;font-size:16px;cursor:pointer;">🔄 重新載入</button>'
+    + '</div>';
+  return true;
+};
+// ── STATE ──
+let geminiKey=localStorage.getItem('gemini_key')||'';
+let deepseekKey=localStorage.getItem('deepseek_key')||'';
+let ttsLang=localStorage.getItem('tts_lang')||'zh-HK';
+let starCount=parseInt(localStorage.getItem('star_count')||'0');
+let currentLines=[];
+let practiceStates=[];
+let currentImgB64=null;
+let currentExpl='';
+let isPlayingAll=false;
+let activeUtt=null;
+let activeRec=null;
+let activeRecIdx=null;
+const todayD=new Date();
+let calYear=todayD.getFullYear(),calMonth=todayD.getMonth();
+
+function getHistory(){try{return JSON.parse(localStorage.getItem('rh')||'[]');}catch(e){return[];}}
+function saveHistory(h){localStorage.setItem('rh',JSON.stringify(h));}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded',()=>{
+  try {
+    updateStarDisplay();
+    if(geminiKey){document.getElementById('geminiRow').style.display='none';document.getElementById('geminiSaved').style.display='flex';}
+    if(deepseekKey){document.getElementById('deepseekRow').style.display='none';document.getElementById('deepseekSaved').style.display='flex';}
+    updateLangBtns();
+    renderCalendar();
+    renderHistory();
+  } catch(e){ console.error('Init error:',e); }
+});
+
+// ── TABS ──
+function switchTab(n){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+n).classList.add('active');
+  document.getElementById('tab-'+n).classList.add('active');
+  if(n==='history')renderHistory();
+  if(n==='calendar')renderCalendar();
+}
+
+// ── KEYS ──
+function saveKey(t){
+  const v=document.getElementById(t+'Input').value.trim();if(!v)return;
+  if(t==='gemini'){geminiKey=v;localStorage.setItem('gemini_key',v);document.getElementById('geminiRow').style.display='none';document.getElementById('geminiSaved').style.display='flex';}
+  else{deepseekKey=v;localStorage.setItem('deepseek_key',v);document.getElementById('deepseekRow').style.display='none';document.getElementById('deepseekSaved').style.display='flex';}
+}
+function clearKey(t){
+  if(t==='gemini'){geminiKey='';localStorage.removeItem('gemini_key');document.getElementById('geminiInput').value='';document.getElementById('geminiRow').style.display='flex';document.getElementById('geminiSaved').style.display='none';}
+  else{deepseekKey='';localStorage.removeItem('deepseek_key');document.getElementById('deepseekInput').value='';document.getElementById('deepseekRow').style.display='flex';document.getElementById('deepseekSaved').style.display='none';}
+}
+
+// ── LANG ──
+function setLang(l){ttsLang=l;localStorage.setItem('tts_lang',l);updateLangBtns();if(window.speechSynthesis)window.speechSynthesis.cancel();}
+function updateLangBtns(){document.getElementById('langHK').classList.toggle('active',ttsLang==='zh-HK');document.getElementById('langCN').classList.toggle('active',ttsLang==='zh-CN');}
+
+// ── FILE ──
+function handleFile(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    currentImgB64=ev.target.result.split(',')[1];
+    document.getElementById('previewImg').src=ev.target.result;
+    document.getElementById('imgWrap').style.display='block';
+    document.getElementById('uploadZone').style.display='none';
+    document.getElementById('extractBtn').disabled=false;
+    document.getElementById('hintText').textContent='準備好了！按「讀取文字」開始';
+  };
+  r.readAsDataURL(file);
+}
+function changeImage(){
+  currentImgB64=null;
+  document.getElementById('imgWrap').style.display='none';
+  document.getElementById('uploadZone').style.display='block';
+  document.getElementById('extractBtn').disabled=true;
+  document.getElementById('fileInput').value='';
+  document.getElementById('hintText').textContent='請先上傳圖片';
+  ['readingCard','explCard','practiceCard'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('manualS').style.display='none';
+  hideError();
+}
+
+// ── EXTRACT ──
+async function extractText(){
+  if(!geminiKey){showError('請先輸入 Gemini API Key！');return;}
+  if(!currentImgB64){showError('請先上傳圖片！');return;}
+  hideError();setLoading(true);
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:'image/jpeg',data:currentImgB64}},{text:'請從這張圖片中提取所有中文文字。只輸出原文，保持原來的段落和換行，每行文字用換行分隔，不要加任何解釋或額外文字。'}]}],generationConfig:{maxOutputTokens:2000}})
+    });
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||`API錯誤 ${res.status}`);}
+    const data=await res.json();
+    const text=data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if(!text)throw new Error('未能讀取到文字');
+    processText(text.trim());
+    if(deepseekKey)generateExpl(text.trim());
+  }catch(e){setLoading(false);showManual(e.message);}
+  finally{setLoading(false);}
+}
+
+async function generateExpl(text){
+  try{
+    const res=await fetch('https://api.deepseek.com/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${deepseekKey}`},
+      body:JSON.stringify({model:'deepseek-chat',max_tokens:500,messages:[{role:'user',content:`以下是一段文字：\n\n${text}\n\n請用簡單易懂的廣東話（口語），為7-9歲的小朋友解釋這段文字的意思。要生動有趣，用日常廣東話詞語，唔好太長，大概3-5句就夠。`}]})
+    });
+    if(!res.ok)return;
+    const data=await res.json();
+    currentExpl=data.choices[0].message.content.trim();
+    document.getElementById('explText').textContent=currentExpl;
+    document.getElementById('explCard').style.display='block';
+  }catch(e){}
+}
+
+// ── PROCESS TEXT ──
+function processText(text){
+  currentLines=splitLines(text);
+  practiceStates=currentLines.map(()=>({attempts:[false,false,false,false,false],done:false}));
+  renderReading();
+  renderPractice();
+  document.getElementById('readingCard').style.display='block';
+  document.getElementById('practiceCard').style.display='block';
+  document.getElementById('readingCard').scrollIntoView({behavior:'smooth',block:'start'});
+  saveEntry(text);
+}
+
+function saveEntry(text){
+  const h=getHistory();
+  h.unshift({id:Date.now(),date:new Date().toISOString(),text,lines:currentLines,imgB64:currentImgB64?currentImgB64.substring(0,4000):null,completed:false,lang:ttsLang});
+  if(h.length>100)h.splice(100);
+  saveHistory(h);
+}
+function markComplete(){
+  const h=getHistory();
+  if(h.length>0){h[0].completed=true;saveHistory(h);}
+}
+
+// ── SPLIT LINES ──
+function splitLines(text){
+  const SP=new Set(['，','。','！','？','；','、','…','：','!','?',',','.']);
+  const lines=[];
+  text.replace(/\r\n/g,'\n').split('\n').forEach(para=>{
+    if(!para.trim())return;
+    let cur='';
+    for(const ch of para){cur+=ch;if(SP.has(ch)){if(cur.trim())lines.push(cur.trim());cur='';}}
+    if(cur.trim())lines.push(cur.trim());
+  });
+  return lines.filter(l=>l.length>0);
+}
+
+// ── RENDER READING ──
+function renderReading(){
+  const body=document.getElementById('readingBody');
+  body.innerHTML='';
+  currentLines.forEach((line,i)=>{
+    const block=document.createElement('div');
+    block.className='line-block';block.id=`rb-${i}`;
+    const top=document.createElement('div');top.className='line-top';
+    const td=document.createElement('div');td.className='line-text';td.id=`rt-${i}`;
+    const dl=line.replace(/[，。！？；、…：,.!?;:]/g,'');
+    [...dl].forEach((ch,ci)=>{const s=document.createElement('span');s.className='word-span';s.id=`rc-${i}-${ci}`;s.textContent=ch;td.appendChild(s);});
+    const btn=document.createElement('button');btn.className='btn-play-line';btn.id=`rbtn-${i}`;btn.innerHTML='▶';btn.onclick=()=>playLine(i);
+    top.appendChild(td);top.appendChild(btn);block.appendChild(top);body.appendChild(block);
+  });
+}
+
+// ── RENDER PRACTICE ──
+function renderPractice(){
+  const body=document.getElementById('practiceBody');
+  body.innerHTML='';
+  currentLines.forEach((line,i)=>{
+    const block=document.createElement('div');block.className='pline';block.id=`pb-${i}`;
+    const lt=document.createElement('div');lt.className='pline-text';lt.textContent=line.replace(/[，。！？；、…：,.!?;:]/g,'');
+    const boxRow=document.createElement('div');boxRow.className='boxes-row';
+    for(let a=0;a<5;a++){const box=document.createElement('div');box.className='abox'+(a===0?' active':'');box.id=`abox-${i}-${a}`;box.textContent='';boxRow.appendChild(box);}
+    const ctrl=document.createElement('div');ctrl.className='pcontrols';
+    const inp=document.createElement('input');inp.type='text';inp.className='pinput';inp.id=`pi-${i}`;inp.placeholder='🎤 錄音 或 用聽寫讀出這句…';
+    inp.setAttribute('autocomplete','off');inp.setAttribute('autocorrect','off');inp.setAttribute('autocapitalize','off');inp.setAttribute('spellcheck','false');
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')checkPractice(i);});
+    const mic=document.createElement('button');mic.className='btn-mic';mic.id=`pm-${i}`;mic.innerHTML='🎤';mic.onclick=()=>toggleRec(i);
+    const chk=document.createElement('button');chk.className='btn-chk';chk.id=`pc-${i}`;chk.textContent='✅ 確認';chk.onclick=()=>checkPractice(i);
+    ctrl.appendChild(inp);ctrl.appendChild(mic);ctrl.appendChild(chk);
+    const badge=document.createElement('div');badge.className='sbadge';badge.id=`psb-${i}`;
+    block.appendChild(lt);block.appendChild(boxRow);block.appendChild(ctrl);block.appendChild(badge);
+    body.appendChild(block);
+  });
+}
+
+// ── TTS ──
+function stripP(t){return t.replace(/[，。！？；、…：,.!?;:]/g,'').trim();}
+function getBestVoice(){
+  const voices=window.speechSynthesis.getVoices();
+  const p=ttsLang==='zh-HK'?['zh-HK','zh_HK','zh-TW','zh_TW','zh']:['zh-CN','zh_CN','zh'];
+  for(const l of p){const v=voices.find(v=>v.lang.startsWith(l));if(v)return v;}
+  return null;
+}
+function speakText(text,onEnd){
+  if(activeUtt)window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(stripP(text));
+  u.lang=ttsLang;u.rate=0.85;const v=getBestVoice();if(v)u.voice=v;
+  u.onend=()=>{activeUtt=null;if(onEnd)onEnd();};
+  u.onerror=()=>{activeUtt=null;if(onEnd)onEnd();};
+  activeUtt=u;window.speechSynthesis.speak(u);
+}
+function playLine(i){
+  const line=currentLines[i];
+  const btn=document.getElementById(`rbtn-${i}`);
+  const dl=line.replace(/[，。！？；、…：,.!?;:]/g,'');
+  const chars=[...dl];
+  chars.forEach((_,ci)=>{const s=document.getElementById(`rc-${i}-${ci}`);if(s)s.classList.remove('reading','done');});
+  btn.classList.add('playing');btn.innerHTML='■';
+  document.getElementById(`rb-${i}`).classList.add('line-playing');
+  const cd=((line.length/3.5)*1000)/chars.length;
+  chars.forEach((_,ci)=>{
+    setTimeout(()=>{
+      if(ci>0){const p=document.getElementById(`rc-${i}-${ci-1}`);if(p){p.classList.remove('reading');p.classList.add('done');}}
+      const c=document.getElementById(`rc-${i}-${ci}`);if(c)c.classList.add('reading');
+    },ci*cd);
+  });
+  speakText(line,()=>{
+    btn.classList.remove('playing');btn.innerHTML='▶';
+    document.getElementById(`rb-${i}`).classList.remove('line-playing');
+    chars.forEach((_,ci)=>{const s=document.getElementById(`rc-${i}-${ci}`);if(s)s.classList.remove('reading','done');});
+  });
+}
+function playAll(){
+  const btn=document.getElementById('btnPlayAll');
+  if(isPlayingAll){window.speechSynthesis.cancel();isPlayingAll=false;btn.textContent='▶ 全文朗讀';btn.classList.remove('playing');return;}
+  isPlayingAll=true;btn.textContent='■ 停止';btn.classList.add('playing');
+  let i=0;
+  const next=()=>{
+    if(!isPlayingAll||i>=currentLines.length){isPlayingAll=false;btn.textContent='▶ 全文朗讀';btn.classList.remove('playing');return;}
+    const idx=i++;
+    document.getElementById(`rb-${idx}`).scrollIntoView({behavior:'smooth',block:'nearest'});
+    playLine(idx);
+    const dur=(currentLines[idx].length/3.5)*1000+500;
+    setTimeout(next,dur);
+  };
+  next();
+}
+function playExpl(){
+  if(!currentExpl)return;
+  const icon=document.getElementById('explIcon');
+  icon.textContent='■';
+  speakText(currentExpl,()=>{icon.textContent='▶';});
+}
+
+// ── RECORDING ──
+function toggleRec(i){
+  if(activeRecIdx===i&&activeRec){activeRec.stop();return;}
+  if(activeRec)activeRec.stop();
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('請用 Chrome 最新版或 iPhone Safari 錄音');return;}
+  const mic=document.getElementById(`pm-${i}`);
+  const inp=document.getElementById(`pi-${i}`);
+  const rec=new SR();
+  rec.lang=ttsLang;rec.continuous=true;rec.interimResults=true;
+  activeRec=rec;activeRecIdx=i;
+  mic.classList.add('recording');mic.innerHTML='⏹';
+  inp.value='';inp.placeholder='🔴 錄音中…';inp.classList.add('rec-on');
+  rec.onresult=e=>{let t='';for(let r=e.resultIndex;r<e.results.length;r++)t+=e.results[r][0].transcript;inp.value=t;};
+  rec.onend=()=>{mic.classList.remove('recording');mic.innerHTML='🎤';inp.placeholder='🎤 錄音 或 用聽寫讀出這句…';inp.classList.remove('rec-on');activeRec=null;activeRecIdx=null;};
+  rec.onerror=e=>{mic.classList.remove('recording');mic.innerHTML='🎤';inp.placeholder='🎤 錄音 或 用聽寫讀出這句…';inp.classList.remove('rec-on');activeRec=null;activeRecIdx=null;if(e.error==='not-allowed')alert('請允許麥克風權限！');};
+  rec.start();
+}
+
+// ── SCORING ──
+function norm(t){return t.replace(/\s+/g,'').replace(/[，。！？、；：「」（）]/g,'').toLowerCase();}
+function score(inp,tgt){
+  const a=[...norm(inp)],b=[...norm(tgt)];
+  if(a.join('')===b.join(''))return 100;
+  const used=new Array(b.length).fill(false);let m=0;
+  a.forEach(ch=>{const idx=b.findIndex((bc,i)=>!used[i]&&bc===ch);if(idx!==-1){m++;used[idx]=true;}});
+  const p=a.length>0?m/a.length:0,r=b.length>0?m/b.length:0;
+  return p+r===0?0:Math.round(2*p*r/(p+r)*100);
+}
+
+function checkPractice(i){
+  const inp=document.getElementById(`pi-${i}`);
+  const badge=document.getElementById(`psb-${i}`);
+  const userText=inp.value.trim();
+  if(!userText){inp.focus();return;}
+  const state=practiceStates[i];
+  if(state.done)return;
+  const next=state.attempts.findIndex(a=>!a);
+  if(next===-1)return;
+  const sc=score(userText,currentLines[i]);
+  badge.style.display='block';
+  if(sc>=80){
+    state.attempts[next]=true;
+    const box=document.getElementById(`abox-${i}-${next}`);
+    box.classList.remove('active');box.classList.add('passed');box.textContent='✓';
+    badge.className='sbadge sh';badge.textContent=`✅ 好叻！${sc}% 正確！`;
+    inp.value='';
+    if(next<4)document.getElementById(`abox-${i}-${next+1}`).classList.add('active');
+    if(state.attempts.every(a=>a)){
+      state.done=true;
+      document.getElementById(`pb-${i}`).classList.add('all-done');
+      inp.disabled=true;document.getElementById(`pc-${i}`).disabled=true;document.getElementById(`pm-${i}`).disabled=true;
+      badge.textContent='🌟 全部完成！';
+      checkAllDone();
+    }
+  }else if(sc>=50){
+    badge.className='sbadge sm';badge.textContent=`😊 接近了！${sc}%，再試！`;inp.value='';inp.focus();
+  }else{
+    badge.className='sbadge sl';badge.textContent=`💪 ${sc}%，加油！聽一次再試！`;inp.value='';inp.focus();
+  }
+}
+
+function checkAllDone(){
+  if(practiceStates.every(s=>s.done)){
+    starCount++;localStorage.setItem('star_count',starCount);updateStarDisplay();
+    markComplete();
+    setTimeout(launchConfetti,300);
+  }
+}
+
+// ── CONFETTI ──
+function launchConfetti(){
+  const wrap=document.getElementById('confettiWrap');wrap.innerHTML='';
+  const cols=['#FF6B6B','#FFD93D','#6BCB77','#4ECDC4','#7C5CBF','#FF9F43','#A29BFE'];
+  for(let i=0;i<90;i++){
+    const c=document.createElement('div');c.className='confetto';
+    c.style.cssText=`left:${Math.random()*100}%;background:${cols[Math.floor(Math.random()*cols.length)]};width:${6+Math.random()*10}px;height:${6+Math.random()*10}px;animation-duration:${1.5+Math.random()*2.5}s;animation-delay:${Math.random()*0.6}s;border-radius:${Math.random()>0.5?'50%':'2px'};`;
+    wrap.appendChild(c);
+  }
+  setTimeout(()=>wrap.innerHTML='',4500);
+}
+
+// ── STARS ──
+function updateStarDisplay(){document.getElementById('starCount').textContent=starCount;}
+
+// ── HISTORY ──
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  const h=getHistory();
+  if(h.length===0){
+    list.innerHTML=`<div class="empty-state"><span class="empty-icon">📚</span><p style="font-size:16px;font-weight:700;">還沒有讀書記錄<br>去讀第一本書吧！</p></div>`;
+    return;
+  }
+  list.innerHTML='';
+  h.forEach(entry=>{
+    const card=document.createElement('div');card.className='entry-card';card.onclick=()=>openDetail(entry);
+    const d=new Date(entry.date);
+    const ds=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+    const preview=(entry.lines||[]).slice(0,2).map(l=>l.replace(/[，。！？；、…：,.!?;:]/g,'')).join(' ')||(entry.text||'').substring(0,50);
+    const tick=entry.completed?' ✅':'';
+    if(entry.imgB64){
+      card.innerHTML=`<img class="entry-thumb" src="data:image/jpeg;base64,${entry.imgB64}" onerror="this.style.display='none'"><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}</div>`;
+    }else{
+      card.innerHTML=`<div class="entry-thumb-ph">📄</div><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}</div>`;
+    }
+    list.appendChild(card);
+  });
+}
+
+function openDetail(entry){
+  const d=new Date(entry.date);
+  const ds=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  let html=`<div style="font-size:13px;font-weight:800;color:var(--muted);margin-bottom:12px;">${ds}</div>`;
+  if(entry.imgB64)html+=`<img src="data:image/jpeg;base64,${entry.imgB64}" style="width:100%;border-radius:16px;margin-bottom:14px;border:2px solid var(--border);" onerror="this.style.display='none'">`;
+  if(entry.lines&&entry.lines.length>0){
+    html+=`<div class="card" style="margin-bottom:14px;"><div class="card-hd"><div class="card-title">📝 文章</div></div><div class="card-body">`;
+    entry.lines.forEach(l=>{html+=`<div style="font-family:'Noto Sans HK',sans-serif;font-size:20px;font-weight:700;margin-bottom:10px;letter-spacing:2px;">${l.replace(/[，。！？；、…：,.!?;:]/g,'')}</div>`;});
+    html+=`</div></div>`;
+  }
+  document.getElementById('detailContent').innerHTML=html;
+  document.getElementById('detailOverlay').classList.add('open');
+}
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('open');}
+
+// ── CALENDAR ──
+const monthNames=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+function renderCalendar(){
+  document.getElementById('calTitle').textContent=`${calYear}年 ${monthNames[calMonth]}`;
+  const labels=document.getElementById('calLabels');
+  labels.innerHTML=['日','一','二','三','四','五','六'].map(d=>`<div class="cal-label">${d}</div>`).join('');
+  const h=getHistory();
+  const completedSet=new Set();
+  const entryMap={};
+  h.forEach(e=>{
+    const d=new Date(e.date);
+    const k=`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    if(e.completed)completedSet.add(k);
+    if(!entryMap[k])entryMap[k]=e;
+  });
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const dim=new Date(calYear,calMonth+1,0).getDate();
+  const prevDim=new Date(calYear,calMonth,0).getDate();
+  const grid=document.getElementById('calGrid');grid.innerHTML='';
+  for(let i=firstDay-1;i>=0;i--){const el=document.createElement('div');el.className='cal-day other';el.innerHTML=`<div class="cal-num">${prevDim-i}</div>`;grid.appendChild(el);}
+  for(let d=1;d<=dim;d++){
+    const k=`${calYear}-${calMonth}-${d}`;
+    const isToday=d===todayD.getDate()&&calMonth===todayD.getMonth()&&calYear===todayD.getFullYear();
+    const hasStar=completedSet.has(k);
+    const el=document.createElement('div');
+    el.className='cal-day'+(isToday?' today':'')+(hasStar?' has-star':'');
+    if(hasStar){el.innerHTML=`<div class="cal-star">⭐</div><div class="cal-num">${d}</div>`;el.onclick=()=>{if(entryMap[k])openDetail(entryMap[k]);};}
+    else{el.innerHTML=`<div class="cal-num">${d}</div>`;}
+    grid.appendChild(el);
+  }
+  const total=firstDay+dim;const rem=total%7===0?0:7-(total%7);
+  for(let i=1;i<=rem;i++){const el=document.createElement('div');el.className='cal-day other';el.innerHTML=`<div class="cal-num">${i}</div>`;grid.appendChild(el);}
+}
+function calNav(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+
+// ── MANUAL ──
+function showManual(msg){
+  document.getElementById('manualNote').textContent=msg?`⚠️ 自動讀取失敗 — 請手動貼上文字：`:'📋 請手動貼上文字：';
+  document.getElementById('manualS').style.display='block';
+  document.getElementById('manualS').scrollIntoView({behavior:'smooth'});
+  if(msg)showError('自動讀取失敗：'+msg);
+}
+function submitManual(){
+  const text=document.getElementById('manualInput').value.trim();if(!text)return;
+  document.getElementById('manualS').style.display='none';hideError();
+  processText(text);
+  if(deepseekKey)generateExpl(text);
+}
+
+// ── UTILS ──
+function setLoading(on){
+  const btn=document.getElementById('extractBtn'),sp=document.getElementById('spinner'),txt=document.getElementById('extractBtnText');
+  btn.disabled=on;sp.style.display=on?'block':'none';txt.textContent=on?'讀取中…':'✨ 讀取文字';
+}
+function showError(msg){const e=document.getElementById('errorMsg');e.textContent=msg;e.style.display='block';}
+function hideError(){document.getElementById('errorMsg').style.display='none';}
+if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>getBestVoice();
+
+// Make functions globally accessible for inline onclick handlers
+window.setLang=setLang;
+window.saveKey=saveKey;
+window.clearKey=clearKey;
+window.handleFile=handleFile;
+window.changeImage=changeImage;
+window.extractText=extractText;
+window.submitManual=submitManual;
+window.playAll=playAll;
+window.playLine=playLine;
+window.playExpl=playExpl;
+window.toggleRec=toggleRec;
+window.checkPractice=checkPractice;
+window.calNav=calNav;
+window.closeDetail=closeDetail;
+window.switchTab=switchTab;
+</script>
+</body>
+</html>

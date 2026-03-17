@@ -170,10 +170,13 @@ html,body{height:100%;overflow:hidden;visibility:visible;font-family:'Nunito','N
         <div class="saved-b" id="geminiSaved">✅ Gemini Key 已儲存<button onclick="clearKey('gemini')">更改</button></div>
         <div class="frow" id="geminiRow"><input type="password" class="api-input" id="geminiInput" placeholder="AIza..."><button class="btn-save" onclick="saveKey('gemini')">儲存</button></div>
 
-        <span class="slabel">🗣 朗讀語言（粵語）</span>
+        <span class="slabel">🔊 Google TTS Key（語音朗讀 — console.cloud.google.com）</span>
+        <div class="saved-b" id="ttsSaved">✅ TTS Key 已儲存<button onclick="clearKey('tts')">更改</button></div>
+        <div class="frow" id="ttsRow"><input type="password" class="api-input" id="ttsInput" placeholder="AIza..."><button class="btn-save" onclick="saveKey('tts')">儲存</button></div>
+        <span class="slabel">🗣 朗讀語言</span>
         <div class="lang-tog">
-          <button class="lang-btn" id="langHK" onclick="setLang('zh-HK')">🗣 粵語</button>
-          <button class="lang-btn" id="langCN" onclick="setLang('zh-CN')">🗣 普通話</button>
+          <button class="lang-btn" id="langHK" onclick="window.setLang('zh-HK')">🗣 粵語</button>
+          <button class="lang-btn" id="langCN" onclick="window.setLang('zh-CN')">🗣 普通話</button>
         </div>
       </div>
 
@@ -290,6 +293,7 @@ window.onerror = function(msg, src, line, col, err) {
 };
 // ── STATE ──
 let geminiKey=localStorage.getItem('gemini_key')||'';
+let ttsKey=localStorage.getItem('tts_key')||'';
 
 let ttsLang=localStorage.getItem('tts_lang')||'zh-HK';
 let starCount=parseInt(localStorage.getItem('star_count')||'0');
@@ -299,6 +303,7 @@ let currentImgB64=null;
 let currentExpl='';
 let isPlayingAll=false;
 let activeUtt=null;
+let activeAudio=null;
 let activeRec=null;
 let activeRecIdx=null;
 const todayD=new Date();
@@ -313,6 +318,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     updateStarDisplay();
     const gr=document.getElementById('geminiRow'),gs=document.getElementById('geminiSaved');
     if(geminiKey&&gr&&gs){gr.style.display='none';gs.style.display='flex';}
+    const tr=document.getElementById('ttsRow'),ts=document.getElementById('ttsSaved');
+    if(ttsKey&&tr&&ts){tr.style.display='none';ts.style.display='flex';}
     updateLangBtns();
     renderCalendar();
     renderHistory();
@@ -333,9 +340,11 @@ function switchTab(n){
 function saveKey(t){
   const v=document.getElementById(t+'Input').value.trim();if(!v)return;
   if(t==='gemini'){geminiKey=v;localStorage.setItem('gemini_key',v);document.getElementById('geminiRow').style.display='none';document.getElementById('geminiSaved').style.display='flex';}
+  else if(t==='tts'){ttsKey=v;localStorage.setItem('tts_key',v);document.getElementById('ttsRow').style.display='none';document.getElementById('ttsSaved').style.display='flex';}
 }
 function clearKey(t){
   if(t==='gemini'){geminiKey='';localStorage.removeItem('gemini_key');document.getElementById('geminiInput').value='';document.getElementById('geminiRow').style.display='flex';document.getElementById('geminiSaved').style.display='none';}
+  else if(t==='tts'){ttsKey='';localStorage.removeItem('tts_key');document.getElementById('ttsInput').value='';document.getElementById('ttsRow').style.display='flex';document.getElementById('ttsSaved').style.display='none';}
 }
 
 // ── LANG ──
@@ -528,48 +537,72 @@ function stripDisplay(t){
 function getBestVoice(){
   const voices=window.speechSynthesis.getVoices();
   if(!voices.length) return null;
-  // First: exact Cantonese match by name (iPhone Siri voices)
-  const cantoneseNames=['Sin-Ji','Sinji','sin-ji','Good News','Fiona'];
-  for(const name of cantoneseNames){
-    const v=voices.find(v=>v.name.includes(name));
-    if(v){console.log('Voice (name match):',v.name,v.lang);return v;}
-  }
-  // Second: exact zh-HK lang match
-  const v1=voices.find(v=>v.lang==='zh-HK'||v.lang==='zh_HK');
-  if(v1){console.log('Voice (zh-HK):',v1.name,v1.lang);return v1;}
-  // Third: zh-TW as fallback (Traditional Chinese, closer to Cantonese)
-  const v2=voices.find(v=>v.lang==='zh-TW'||v.lang==='zh_TW');
-  if(v2){console.log('Voice (zh-TW):',v2.name,v2.lang);return v2;}
-  // If Mandarin selected, prefer zh-CN
   if(ttsLang==='zh-CN'){
-    const vcn=voices.find(v=>v.lang==='zh-CN'||v.lang==='zh_CN');
-    if(vcn){console.log('Voice (zh-CN):',vcn.name,vcn.lang);return vcn;}
+    // Mandarin: prefer zh-CN voices
+    const v=voices.find(v=>v.lang==='zh-CN'||v.lang==='zh_CN');
+    if(v){console.log('Mandarin voice:',v.name,v.lang);return v;}
+    // fallback any zh
+    return voices.find(v=>v.lang.startsWith('zh'))||null;
+  } else {
+    // Cantonese: look for Sin-Ji (iPhone HK Siri voice) first
+    const cantoneseNames=['Sin-Ji','Sinji','sin-ji','Sin Ji'];
+    for(const name of cantoneseNames){
+      const v=voices.find(v=>v.name.includes(name));
+      if(v){console.log('Cantonese voice (name):',v.name,v.lang);return v;}
+    }
+    // Then exact zh-HK
+    const v1=voices.find(v=>v.lang==='zh-HK'||v.lang==='zh_HK');
+    if(v1){console.log('Cantonese voice (zh-HK):',v1.name,v1.lang);return v1;}
+    // Then zh-TW
+    const v2=voices.find(v=>v.lang==='zh-TW'||v.lang==='zh_TW');
+    if(v2){console.log('Cantonese voice (zh-TW):',v2.name,v2.lang);return v2;}
+    // Last resort
+    return voices.find(v=>v.lang.startsWith('zh'))||null;
   }
-  // Last resort: any zh voice
-  const v3=voices.find(v=>v.lang.startsWith('zh'));
-  if(v3){console.log('Voice (zh fallback):',v3.name,v3.lang);}
-  return v3||null;
 }
-function speakText(text,onEnd){
-  if(activeUtt)window.speechSynthesis.cancel();
+async function speakText(text,onEnd){
+  if(activeUtt){window.speechSynthesis.cancel();activeUtt=null;}
+  if(activeAudio){activeAudio.pause();activeAudio=null;}
+  const clean=stripP(text);
+  if(!clean){if(onEnd)onEnd();return;}
+  // Use Google Cloud TTS if key available
+  if(ttsKey){
+    try{
+      // Google Cloud TTS voices
+      const voiceName=ttsLang==='zh-HK'?'yue-HK-Standard-A':'cmn-CN-Wavenet-A';
+      const langCode=ttsLang==='zh-HK'?'yue-HK':'cmn-CN';
+      const res=await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${ttsKey}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          input:{text:clean},
+          voice:{languageCode:langCode,name:voiceName},
+          audioConfig:{audioEncoding:'MP3',speakingRate:0.9}
+        })
+      });
+      if(res.ok){
+        const data=await res.json();
+        const audio=new Audio('data:audio/mp3;base64,'+data.audioContent);
+        activeAudio=audio;
+        audio.onended=()=>{activeAudio=null;if(onEnd)onEnd();};
+        audio.onerror=()=>{activeAudio=null;if(onEnd)onEnd();};
+        audio.play();
+        return;
+      }
+    }catch(e){console.log('TTS error, falling back to device voice:',e);}
+  }
+  // Fallback: device voice
   const doSpeak=()=>{
-    const u=new SpeechSynthesisUtterance(stripP(text));
-    u.lang='zh-HK';
-    u.rate=0.85;
-    const v=getBestVoice();
-    if(v){u.voice=v;console.log('Speaking with:',v.name,v.lang);}
+    const u=new SpeechSynthesisUtterance(clean);
+    u.lang=ttsLang;u.rate=0.85;
+    const v=getBestVoice();if(v)u.voice=v;
     u.onend=()=>{activeUtt=null;if(onEnd)onEnd();};
     u.onerror=()=>{activeUtt=null;if(onEnd)onEnd();};
-    activeUtt=u;
-    window.speechSynthesis.speak(u);
+    activeUtt=u;window.speechSynthesis.speak(u);
   };
-  // If voices not loaded yet, wait for them
   const voices=window.speechSynthesis.getVoices();
-  if(voices.length===0){
-    window.speechSynthesis.onvoiceschanged=()=>{ window.speechSynthesis.onvoiceschanged=null; doSpeak(); };
-  } else {
-    doSpeak();
-  }
+  if(voices.length===0){window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;doSpeak();};}
+  else{doSpeak();}
 }
 function playLine(i){
   resetPractice();
@@ -601,7 +634,7 @@ function resetPractice(){
 
 function playAll(){
   const btn=document.getElementById('btnPlayAll');
-  if(isPlayingAll){window.speechSynthesis.cancel();isPlayingAll=false;btn.textContent='▶ 全文朗讀';btn.classList.remove('playing');return;}
+  if(isPlayingAll){window.speechSynthesis.cancel();if(activeAudio){activeAudio.pause();activeAudio=null;}isPlayingAll=false;btn.textContent='▶ 全文朗讀';btn.classList.remove('playing');return;}
   resetPractice();
   isPlayingAll=true;btn.textContent='■ 停止';btn.classList.add('playing');
   let i=0;
@@ -619,8 +652,9 @@ function playExpl(){
   if(!currentExpl)return;
   const icon=document.getElementById('explIcon');
   const btn=document.getElementById('btnPlayExpl');
-  if(activeUtt&&btn.dataset.playing==='1'){
+  if(btn.dataset.playing==='1'){
     window.speechSynthesis.cancel();
+    if(activeAudio){activeAudio.pause();activeAudio=null;}
     icon.textContent='▶';
     btn.dataset.playing='0';
     return;

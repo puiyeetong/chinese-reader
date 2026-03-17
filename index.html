@@ -575,26 +575,6 @@ function renderPractice(){
 // ── TTS ──
 function stripP(t){return t.replace(/[，。！？；、…：,.!?;:]/g,'').trim();}
 
-// Simplified to Traditional conversion map (common characters)
-const S2T={
-  '爱':'愛','办':'辦','报':'報','边':'邊','变':'變','宝':'寶','来':'來','长':'長',
-  '车':'車','称':'稱','虫':'蟲','处':'處','传':'傳','单':'單','当':'當','党':'黨',
-  '东':'東','动':'動','断':'斷','对':'對','发':'發','丰':'豐','风':'風','干':'幹',
-  '个':'個','给':'給','国':'國','过':'過','还':'還','汉':'漢','后':'後','画':'畫',
-  '话':'話','欢':'歡','环':'環','坏':'壞','会':'會','几':'幾','家':'家','见':'見',
-  '间':'間','将':'將','进':'進','经':'經','开':'開','来':'來','乐':'樂','里':'裡',
-  '两':'兩','临':'臨','灵':'靈','龙':'龍','楼':'樓','妈':'媽','马':'馬','买':'買',
-  '卖':'賣','门':'門','面':'麵','鸟':'鳥','农':'農','气':'氣','钱':'錢','亲':'親',
-  '请':'請','庆':'慶','区':'區','让':'讓','认':'認','时':'時','书':'書','树':'樹',
-  '双':'雙','说':'說','岁':'歲','孙':'孫','台':'臺','体':'體','听':'聽','头':'頭',
-  '团':'團','万':'萬','为':'為','问':'問','无':'無','现':'現','线':'線','乡':'鄉',
-  '写':'寫','学':'學','颜':'顏','阳':'陽','样':'樣','药':'藥','爷':'爺','义':'義',
-  '应':'應','鱼':'魚','语':'語','远':'遠','员':'員','运':'運','杂':'雜','择':'擇',
-  '这':'這','针':'針','证':'證','种':'種','众':'眾','专':'專','总':'總','最':'最'
-};
-function toTraditional(t){
-  return [...t].map(ch=>S2T[ch]||ch).join('');
-}
 function stripDisplay(t){
   // Keep ONLY Chinese characters (CJK Unified Ideographs) — nothing else
   return [...t].filter(ch=>{
@@ -759,23 +739,21 @@ function toggleRec(i){
   const mic=document.getElementById(`pm-${i}`);
   const inp=document.getElementById(`pi-${i}`);
   const rec=new SR();
-  rec.lang='zh-HK';rec.continuous=true;rec.interimResults=true; // Always zh-HK so result is Traditional Chinese
+  rec.lang=ttsLang;rec.continuous=true;rec.interimResults=true;
   activeRec=rec;activeRecIdx=i;
   mic.classList.add('recording');mic.innerHTML='⏹';
   inp.value='';inp.placeholder='🔴 錄音中…';inp.classList.add('rec-on');
-  rec.onresult=e=>{
-    let t='';
-    for(let r=e.resultIndex;r<e.results.length;r++)t+=e.results[r][0].transcript;
-    // Convert common Simplified chars to Traditional inline
-    inp.value=toTraditional(t);
-  };
+  rec.onresult=e=>{let t='';for(let r=e.resultIndex;r<e.results.length;r++)t+=e.results[r][0].transcript;inp.value=t;};
   rec.onend=()=>{mic.classList.remove('recording');mic.innerHTML='🎤';inp.placeholder='🎤 錄音 或 用聽寫讀出這句…';inp.classList.remove('rec-on');activeRec=null;activeRecIdx=null;};
   rec.onerror=e=>{mic.classList.remove('recording');mic.innerHTML='🎤';inp.placeholder='🎤 錄音 或 用聽寫讀出這句…';inp.classList.remove('rec-on');activeRec=null;activeRecIdx=null;if(e.error==='not-allowed')alert('請允許麥克風權限！');};
   rec.start();
 }
 
 // ── SCORING ──
-function norm(t){return t.replace(/\s+/g,'').replace(/[，。！？、；：「」（）]/g,'').toLowerCase();}
+// Simplified→Traditional map for score matching only
+const S2T={'爱':'愛','办':'辦','报':'報','边':'邊','变':'變','宝':'寶','长':'長','车':'車','称':'稱','处':'處','传':'傳','单':'單','当':'當','党':'黨','东':'東','动':'動','断':'斷','对':'對','发':'發','丰':'豐','风':'風','干':'幹','个':'個','给':'給','国':'國','过':'過','还':'還','汉':'漢','后':'後','画':'畫','话':'話','欢':'歡','环':'環','坏':'壞','会':'會','几':'幾','见':'見','间':'間','将':'將','进':'進','经':'經','开':'開','来':'來','乐':'樂','里':'裡','两':'兩','临':'臨','灵':'靈','龙':'龍','楼':'樓','妈':'媽','马':'馬','买':'買','卖':'賣','门':'門','鸟':'鳥','农':'農','气':'氣','钱':'錢','亲':'親','请':'請','庆':'慶','区':'區','让':'讓','认':'認','时':'時','书':'書','树':'樹','双':'雙','说':'說','岁':'歲','孙':'孫','体':'體','听':'聽','头':'頭','团':'團','万':'萬','为':'為','问':'問','无':'無','现':'現','线':'線','乡':'鄉','写':'寫','学':'學','颜':'顏','阳':'陽','样':'樣','药':'藥','爷':'爺','义':'義','应':'應','鱼':'魚','语':'語','远':'遠','员':'員','运':'運','杂':'雜','这':'這','证':'證','种':'種','众':'眾','专':'專','总':'總'};
+function toTrad(t){return [...t].map(ch=>S2T[ch]||ch).join('');}
+function norm(t){return toTrad(t.replace(/\s+/g,'').replace(/[，。！？、；：「」（）]/g,'')).toLowerCase();}
 function score(inp,tgt){
   const a=[...norm(inp)],b=[...norm(tgt)];
   if(a.join('')===b.join(''))return 100;

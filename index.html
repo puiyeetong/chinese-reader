@@ -407,7 +407,7 @@ async function generateExpl(text){
 
 ${text}
 
-請你用香港小朋友日常講嘅廣東話口語，幫一個7-9歲嘅小朋友解釋呢段文字嘅意思。要講得生動有趣，用簡單嘅廣東話詞語，唔好用普通話或書面語，大概3-5句就夠。記住一定要用廣東話口語，例如：「係咁㗎」、「好犀利呀」、「原來係噉」之類嘅表達方式。`}]}],
+請用廣東話口語，為7至9歲嘅香港小朋友解釋呢段文字嘅意思。用自然嘅廣東話，簡單易明，大概3至5句。`}]}],
         generationConfig:{maxOutputTokens:500}
       })
     });
@@ -466,7 +466,7 @@ function renderReading(){
     block.className='line-block';block.id=`rb-${i}`;
     const top=document.createElement('div');top.className='line-top';
     const td=document.createElement('div');td.className='line-text';td.id=`rt-${i}`;
-    const dl=line.replace(/[，。！？；、…：,.!?;:]/g,'');
+    const dl=stripDisplay(line);
     [...dl].forEach((ch,ci)=>{const s=document.createElement('span');s.className='word-span';s.id=`rc-${i}-${ci}`;s.textContent=ch;td.appendChild(s);});
     const btn=document.createElement('button');btn.className='btn-play-line';btn.id=`rbtn-${i}`;btn.innerHTML='▶';btn.onclick=()=>playLine(i);
     top.appendChild(td);top.appendChild(btn);block.appendChild(top);body.appendChild(block);
@@ -479,7 +479,7 @@ function renderPractice(){
   body.innerHTML='';
   currentLines.forEach((line,i)=>{
     const block=document.createElement('div');block.className='pline';block.id=`pb-${i}`;
-    const lt=document.createElement('div');lt.className='pline-text';lt.textContent=line.replace(/[，。！？；、…：,.!?;:]/g,'');
+    const lt=document.createElement('div');lt.className='pline-text';lt.textContent=stripDisplay(line);
     const boxRow=document.createElement('div');boxRow.className='boxes-row';
     for(let a=0;a<5;a++){const box=document.createElement('div');box.className='abox'+(a===0?' active':'');box.id=`abox-${i}-${a}`;box.textContent='';boxRow.appendChild(box);}
     const ctrl=document.createElement('div');ctrl.className='pcontrols';
@@ -501,6 +501,10 @@ function renderPractice(){
 
 // ── TTS ──
 function stripP(t){return t.replace(/[，。！？；、…：,.!?;:]/g,'').trim();}
+function stripDisplay(t){
+  // Keep only Chinese characters, letters and numbers - remove ALL punctuation and symbols
+  return t.replace(/[^一-鿿㐀-䶿＀-￯a-zA-Z0-9\s]/g,'').trim();
+}
 function getBestVoice(){
   const voices=window.speechSynthesis.getVoices();
   if(!voices.length) return null;
@@ -551,7 +555,7 @@ function playLine(i){
   resetPractice();
   const line=currentLines[i];
   const btn=document.getElementById(`rbtn-${i}`);
-  const dl=line.replace(/[，。！？；、…：,.!?;:]/g,'');
+  const dl=stripDisplay(line);
   const chars=[...dl];
   chars.forEach((_,ci)=>{const s=document.getElementById(`rc-${i}-${ci}`);if(s)s.classList.remove('reading','done');});
   btn.classList.add('playing');btn.innerHTML='■';
@@ -594,8 +598,16 @@ function playAll(){
 function playExpl(){
   if(!currentExpl)return;
   const icon=document.getElementById('explIcon');
+  const btn=document.getElementById('btnPlayExpl');
+  if(activeUtt&&btn.dataset.playing==='1'){
+    window.speechSynthesis.cancel();
+    icon.textContent='▶';
+    btn.dataset.playing='0';
+    return;
+  }
   icon.textContent='■';
-  speakText(currentExpl,()=>{icon.textContent='▶';});
+  btn.dataset.playing='1';
+  speakText(currentExpl,()=>{icon.textContent='▶';btn.dataset.playing='0';});
 }
 
 // ── RECORDING ──
@@ -698,13 +710,23 @@ function renderHistory(){
     const ds=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
     const preview=(entry.lines||[]).slice(0,2).map(l=>l.replace(/[，。！？；、…：,.!?;:]/g,'')).join(' ')||(entry.text||'').substring(0,50);
     const tick=entry.completed?' ✅':'';
+    const delBtn=`<button onclick="event.stopPropagation();deleteEntry(${entry.id})" style="position:absolute;top:8px;right:8px;background:rgba(255,80,80,0.9);color:white;border:none;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;">🗑</button>`;
+    card.style.position='relative';
     if(entry.imgB64){
-      card.innerHTML=`<img class="entry-thumb" src="data:image/jpeg;base64,${entry.imgB64}" onerror="this.style.display='none'"><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}</div>`;
+      card.innerHTML=`<img class="entry-thumb" src="data:image/jpeg;base64,${entry.imgB64}" onerror="this.style.display='none'"><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}</div>${delBtn}`;
     }else{
-      card.innerHTML=`<div class="entry-thumb-ph">📄</div><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}</div>`;
+      card.innerHTML=`<div class="entry-thumb-ph">📄</div><div class="entry-info"><div class="entry-date">${ds}${tick}</div><div class="entry-preview">${preview}</div>${entry.completed?'<div style="margin-top:6px;font-size:14px;">⭐⭐⭐⭐⭐</div>':''}</div>${delBtn}`;
     }
     list.appendChild(card);
   });
+}
+
+function deleteEntry(id){
+  if(!confirm('確定刪除這個記錄？')) return;
+  const h=getHistory().filter(e=>e.id!==id);
+  saveHistory(h);
+  renderHistory();
+  renderCalendar();
 }
 
 function openDetail(entry){
@@ -714,7 +736,7 @@ function openDetail(entry){
   if(entry.imgB64)html+=`<img src="data:image/jpeg;base64,${entry.imgB64}" style="width:100%;border-radius:16px;margin-bottom:14px;border:2px solid var(--border);" onerror="this.style.display='none'">`;
   if(entry.lines&&entry.lines.length>0){
     html+=`<div class="card" style="margin-bottom:14px;"><div class="card-hd"><div class="card-title">📝 文章</div></div><div class="card-body">`;
-    entry.lines.forEach(l=>{html+=`<div style="font-family:'Noto Sans HK',sans-serif;font-size:20px;font-weight:700;margin-bottom:10px;letter-spacing:2px;">${l.replace(/[，。！？；、…：,.!?;:]/g,'')}</div>`;});
+    entry.lines.forEach(l=>{html+=`<div style="font-family:'Noto Sans HK',sans-serif;font-size:20px;font-weight:700;margin-bottom:10px;letter-spacing:2px;">${stripDisplay(l)}</div>`;});
     html+=`</div></div>`;
   }
   document.getElementById('detailContent').innerHTML=html;
@@ -795,6 +817,7 @@ window.checkPractice=checkPractice;
 window.calNav=calNav;
 window.closeDetail=closeDetail;
 window.switchTab=switchTab;
+window.deleteEntry=deleteEntry;
 window.setLang=setLang;
 </script>
 </body>
